@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 from scipy.io import loadmat
 from scipy.ndimage import gaussian_filter
 from PIL import Image
+import cv2
 
 class UCF_CC_50_Dataset:
 
-            # rozmiar moznabyc zmienic na 192x192 zeby bylo podzielne przez 16 co moze czasami sie przydac
     def __init__(self, datasetPath, tempPath, maxSize = (200, 200), seed = 123, norm = 10000, kernel = 9):
         self.norm = norm
         self.kernel = kernel
@@ -29,6 +29,8 @@ class UCF_CC_50_Dataset:
                 num += 1
                 files.append(file)
 
+        num = round(num * 0.2)
+        files = files[:num]
 
         trainNum = round(0.4 * num)
         testNum = round(0.4 * num)
@@ -109,7 +111,6 @@ class UCF_CC_50_Dataset:
                 for x, y in targetPoints:
                     target[y - frag[1]][x - frag[0]] = self.norm
 
-                #target = self.gaussian_filter_density(reg, target)
                 target = gaussian_filter(target, sigma=(self.kernel, self.kernel), order=0)
                 assert round(np.sum(target)/self.norm) == len(targetPoints)
                 target = Image.fromarray(target, 'F').convert("L")
@@ -142,15 +143,14 @@ class UCF_CC_50_Dataset:
         return ret
 
     def __getitem__(self, i):
-        
-        match i:
-            case 'test':
+
+            if i == 'test':
                 return CCDataset("../temp/UCF_CC_50/test", self.rng)
-            case 'train':
+            if i == 'train':
                 return CCDataset("../temp/UCF_CC_50/train", self.rng)
-            case 'valid':
+            if i == 'valid':
                 return CCDataset("../temp/UCF_CC_50/valid", self.rng)
-            case _:
+            else :
                 return CCDataset("../temp/UCF_CC_50/train", self.rng)
 
     pass
@@ -192,7 +192,8 @@ class CCDataset(Dataset):
         pointsPath = os.path.join(self.dir, pointsName)
 
         image = Image.open(inputPath)
-        target = Image.open(targetPath).convert("L")
+        target = np.array(Image.open(targetPath))
+
         points = None
         with open(pointsPath, 'r', newline='') as csvFile:
             reader = csv.reader(csvFile, quoting=csv.QUOTE_NONNUMERIC)
@@ -200,14 +201,13 @@ class CCDataset(Dataset):
 
         image = T.to_tensor(T.to_grayscale(image, 3))
         target = T.to_tensor(target)
-
         return image, target, len(points)
     pass
 
 
 if __name__ == "__main__":
     
-    dataset = UCF_CC_50_Dataset("./dataset/UCF_CC_50/", "./temp/dataset/UCF_CC_50/")
+    dataset = UCF_CC_50_Dataset("UCF_CC_50", "temp\\UCF_CC_50/")
     ds = dataset["test"]
     print(ds[0])
 
