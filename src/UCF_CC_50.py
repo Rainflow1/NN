@@ -29,8 +29,8 @@ class UCF_CC_50_Dataset:
                 num += 1
                 files.append(file)
 
-        num = round(num * 0.2)
-        files = files[:num]
+        #num = round(num * 0.2)
+        #files = files[:num]
 
         trainNum = round(0.4 * num)
         testNum = round(0.4 * num)
