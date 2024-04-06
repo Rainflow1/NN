@@ -3,66 +3,6 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torchvision import models
 
-class UNet(nn.Module):
-    def __init__(self, features=32):
-        super(UNet, self).__init__()
-
-        self.encod1 = self.conv(3, features)
-        self.encod2 = self.conv(features, features * 2)
-        self.encod3 = self.conv(features * 2, features * 4)
-        self.encod4 = self.conv(features * 4, features * 8)
-        self.bneck = self.conv(features * 8, features * 16)
-
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
-
-        self.up4 = nn.ConvTranspose2d(features * 16, features * 8, kernel_size=2, stride=2)
-        self.up3 = nn.ConvTranspose2d(features * 8, features * 4, kernel_size=2, stride=2)
-        self.up2 = nn.ConvTranspose2d(features * 4, features * 2, kernel_size=2, stride=2)
-        self.up1 = nn.ConvTranspose2d(features * 2, features, kernel_size=2, stride=2)
-
-        self.dec4 = self.conv(features * 16, features * 8)
-        self.dec3 = self.conv(features * 8, features * 4)
-        self.dec2 = self.conv(features * 4, features * 2)
-        self.dec1 = self.conv(features * 2, features)
-
-        self.outConv = nn.Conv2d(features, 1, kernel_size=1)
-
-    def forward(self, x):
-
-        enc1 = self.encod1(x)
-        enc2 = self.encod2(self.pool1(enc1))
-        enc3 = self.encod3(self.pool2(enc2))
-        enc4 = self.encod4(self.pool3(enc3))
-
-        bneck = self.bneck(self.pool4(enc4))
-
-        dec4 = self.up4(bneck)
-        dec4 = torch.cat((dec4, enc4), dim=1)
-        dec4 = self.dec4(dec4)
-        dec3 = self.up3(dec4)
-        dec3 = torch.cat((dec3, enc3), dim=1)
-        dec3 = self.dec3(dec3)
-        dec2 = self.up2(dec3)
-        dec2 = torch.cat((dec2, enc2), dim=1)
-        dec2 = self.dec2(dec2)
-        dec1 = self.up1(dec2)
-        dec1 = torch.cat((dec1, enc1), dim=1)
-        dec1 = self.dec1(dec1)
-        return torch.sigmoid(self.outConv(dec1))
-
-    def conv(self, input, output):
-        return nn.Sequential(
-            nn.Conv2d(input, output, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=output),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(output, output, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=output),
-            nn.ReLU(inplace=True),
-        )
-
 
 class Conv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, \
@@ -318,7 +258,7 @@ class CSRNet(nn.Module):
             mod = models.vgg16(pretrained=True)
             self._initialize_weights()
             for i in range(len(self.frontend.state_dict().items())):
-                self.frontend.state_dict().items()[i][1].data[:] = mod.state_dict().items()[i][1].data[:]
+                list(self.frontend.state_dict().items())[i][1].data[:] = list(mod.state_dict().items())[i][1].data[:]
 
     def forward(self, x):
         x = self.frontend(x)
@@ -354,3 +294,19 @@ def make_layers(cfg, in_channels=3, batch_norm=False, dilation=False):
                 layers += [conv2d, nn.ReLU(inplace=True)]
             in_channels = v
     return nn.Sequential(*layers)
+
+
+if __name__ == "__main__":
+    loss = nn.MSELoss()
+    inp = torch.rand(3, 3)
+    targ = torch.rand(3, 3)
+    out = loss(inp, targ)
+    print(inp)
+    print(targ)
+    print(out)
+    print("---")
+    suma = 0
+    for i in range(3):
+        for j in range(3):
+            suma += (inp[i][j] - targ[i][j])**2
+    print(suma / 9)

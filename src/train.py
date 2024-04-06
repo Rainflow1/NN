@@ -2,27 +2,26 @@ import os
 from datetime import datetime
 import matplotlib.pyplot as plt
 
-from earlyStopper import EarlyStopper
 from UCF_CC_50 import UCF_CC_50_Dataset
 from model import *
+from dataset import *
 from torch.utils.data import DataLoader
 
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256'
 
-BATCH_SIZE = 8
+BATCH_SIZE = 1
 LEARNING_RATE = 1e-6
 WEIGHT_DECAY = 2e-4
-EPOCHS = 50
+EPOCHS = 300
 NORM = 10000
 KERNEL = 9
+THREADS = 2
 
 
 def train():
-    
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    #device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Initialized with: " + str(device), end='\n\n')
 
     dataset = UCF_CC_50_Dataset("../UCF_CC_50", "../temp/UCF_CC_50", norm=NORM, kernel=KERNEL)
@@ -30,17 +29,17 @@ def train():
     training_set = dataset["train"]
     validation_set = dataset["valid"]
 
-    training_loader = DataLoader(training_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=4)
-    validation_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=4)
+    training_loader = DataLoader(training_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=True, num_workers=THREADS)
+    validation_loader = DataLoader(validation_set, batch_size=BATCH_SIZE, shuffle=False, pin_memory=True, num_workers=THREADS)
 
     print('Training set has {} instances'.format(len(training_set)))
     print('Validation set has {} instances'.format(len(validation_set)))
 
-    model = SASNet().to(device)
+    model = SASNet()
+    model.to(device)
 
     lossFN = nn.MSELoss().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    early_stopper = EarlyStopper(5, 500)
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     best_mae = 1000000.0
@@ -56,7 +55,14 @@ def train():
                 
             outputs = model(inputs)
 
-            loss = lossFN(outputs, targets)
+            if epoch % 10 == 0 and i == 0:
+               plt.figure(1)
+               plt.imshow(targets.cpu().detach().squeeze().numpy())
+               plt.figure(2)
+               plt.imshow(outputs.cpu().detach().squeeze().numpy())
+               plt.show()
+
+            loss = lossFN(outputs, targets).to(device)
 
             optimizer.zero_grad()
             loss.backward()
@@ -64,125 +70,66 @@ def train():
 
             loss_avg += loss.item()
 
-            print("Epoch:{}, Batch:{}, Loss:{:.4f}".format(epoch, i, loss_avg / BATCH_SIZE / (i + 1)))
-            print(f"Pred {outputs.sum()}, Count: {count.sum()}")
+            print(f"Epoch: {epoch}, Pred {outputs.sum()/10000*255.0}, "
+                  f"Count: {count.sum()}")
 
         mae, mse = 0., 0.
         model.eval()
         with torch.no_grad():
-            for i, (img, gt, count) in enumerate(validation_loader):
-                img = img.to(device)
+            for i, (inputs, targets, count) in enumerate(validation_loader):
+                inputs = inputs.to(device)
+                targets = targets.to(device)
 
-                pred = model(img)
+                outputs = model(inputs)
 
-                mae += torch.abs(pred.sum() - gt.sum()).item()
-                mse += ((pred.sum() - gt.sum()) ** 2).item()
+                mae += abs(outputs.data.sum()-targets.sum()).to(device)
 
         mae = mae / len(validation_loader)
-        mse = mse / len(validation_loader)
 
-        print(f'Epoch {epoch}, MAE: {mae}, MSE: {mse}')
+        print(f'(-)   Epoch {epoch}, MAE: {mae}    (-)')
 
-        if mae < best_mae:
+        if epoch % 10 == 0 and epoch != 0:
             best_mae = mae
-            model_path = '../checkpoint/model_{}.pt'.format(timestamp+" "+str(epoch))
+            model_path = '../checkpoint/model_{}.pt'.format(timestamp+"_"+str(epoch))
             torch.save(model.state_dict(), model_path)
 
 
-        #if early_stopper(mae):
-        #    print("Train stopped")
-        #    break
-
 def test():
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model: nn.Module = UNet()
+    model = SASNet()
     model.to(device)
 
-    files = [file for file in os.listdir("./temp/model/")]
+    files = [file for file in os.listdir("../checkpoint")]
     files.sort(reverse=True)
     
-    model.load_state_dict(torch.load(os.path.join("./temp/model/", files[0])))
+    model.load_state_dict(torch.load("../checkpoint/model_20240406_232349 160.pt"))
 
-    dataset = UCF_CC_50_Dataset("./dataset/UCF_CC_50/", "./temp/dataset/UCF_CC_50/", norm=NORM)
+    dataset = UCF_CC_50_Dataset("../UCF_CC_50/", "../temp/UCF_CC_50/")
 
     tset = dataset["test"]
 
-    d, gt, p = tset[0]
+    d, gt, p = tset[2]
 
     input = d.unsqueeze(0).to(device)
     target = gt
 
     output = model(input)
 
-    print(f'count: {torch.sum(output)/NORM} | {p}')
+    print(f'count: {output.sum() * 255.0 / 10000} | {p}')
 
     plt.imshow(output.to('cpu').detach()[0].permute(1, 2, 0))
-    plt.savefig("./temp/testImg/test1.png")
+    plt.savefig("../temp/testImg/test1.png")
     plt.imshow(target.permute(1, 2, 0))
-    plt.savefig("./temp/testImg/test2.png")
+    plt.savefig("../temp/testImg/test2.png")
     plt.imshow(input.to('cpu').detach()[0].permute(1, 2, 0))
-    plt.savefig("./temp/testImg/test3.png")
+    plt.savefig("../temp/testImg/test3.png")
 
     pass
 
 
 if __name__ == "__main__":
     train()
-    test()
+    #test()
 
-    """
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    model: nn.Module = SimpleUNet()
-    model.to(device)
-
-    dataset = UCF_CC_50_Dataset("./dataset/UCF_CC_50/", "./temp/dataset/UCF_CC_50/")
-    tset = dataset["test"]
-
-    d, gt, p = tset[0]
-
-    input = d.unsqueeze(0).to(device)
-    target = gt.unsqueeze(0).to(device)
-
-    output = model(input)
-
-    print(f'count: {torch.sum(output)/10000} = {p}')
-
-    plt.imshow(output.to('cpu').detach()[0].permute(1, 2, 0))
-    plt.savefig("./temp/testImg/test1.png")
-    plt.imshow(target.to('cpu').detach()[0].permute(1, 2, 0))
-    plt.savefig("./temp/testImg/test2.png")
-    plt.imshow(input.to('cpu').detach()[0].permute(1, 2, 0))
-    plt.savefig("./temp/testImg/test3.png")
-    """
-
-    """
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    model: nn.Module = SimpleUNet()
-    model.to(device)
-
-    inputs = torch.ones(16, 3, 200, 200).to(device)
-    targets = torch.ones(16, 3, 200, 200).to(device)
-
-    lossFN = nn.MSELoss()
-
-    model.train(True)
-
-    running_loss = 0
-
-    for n in range(10):
-        inputs = inputs.to(device)
-        targets = targets.to(device)
-        
-        outputs = model(inputs)
-
-        loss = lossFN(outputs, targets)
-        running_loss += loss.item()
-        loss.backward()
-        print(outputs)
-
-    model.train(False)
-    """
     
