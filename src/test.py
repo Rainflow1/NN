@@ -1,0 +1,53 @@
+from train import *
+from argparse import *
+import torch
+import os
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description="Training")
+    parser.add_argument("--dataset", default="./dataset", help="preprocessed dataset path")
+    parser.add_argument("--model", default="./checkpoint/24-04-29_22-03", help="model path")
+
+    parser.add_argument("--batch", type=int, default=1)
+    parser.add_argument("--workers", type=int, default=2)
+
+    args = parser.parse_args()
+    torch.backends.cudnn.benchmark = True
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    for k, v in args.__dict__.items():
+        print("Argument: {} -> {}".format(k, v))
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Initialized with: " + str(device), end='\n\n')
+
+    model_path = os.path.join(args.model, "best_model.pth")
+
+    test_set = UCFDataset(dataset_path=os.path.join(args.dataset, "test"), mode="val")
+
+    test_loader = DataLoader(test_set, batch_size=args.batch, shuffle=False, pin_memory=True,
+                             num_workers=args.workers)
+
+    model = vgg19()
+    model.to(device)
+    model.load_state_dict(torch.load(model_path), device)
+    diff_list = []
+
+    for i, (inputs, count, name) in tqdm(enumerate(test_loader), total=len(test_loader)):
+        inputs = inputs.to(device)
+        count = count.to(device)
+        with torch.no_grad():
+            output = model(inputs)
+            diff = count[0].item() - output.sum().item()
+
+            diff_list.append(diff)
+
+            if i % 50 == 0:
+                matplotlib.pyplot.figure(0)
+                matplotlib.pyplot.imshow(output.detach().cpu().squeeze().numpy())
+                matplotlib.pyplot.title("Generated from img: {}".format(name))
+                matplotlib.pyplot.show()
+
+    diff_list = np.array(diff_list)
+    mse = np.sqrt(np.mean(np.square(diff_list)))
+    mae = np.mean(np.abs(diff_list))
+    print("Test Results  ->  MAE: {:.2f}, MSE: {:.2f}".format(mae, mse))
