@@ -1,3 +1,5 @@
-Dodałem 2 modele - CSRNet i SASNet  
-Implementacje są z wiki - https://github.com/gjy3035/Awesome-Crowd-Counting?tab=readme-ov-file  
-Sa tam między innymi porównanie wyników różnych sieci, papiery oraz czasami implementacje  
+https://github.com/gjy3035/Awesome-Crowd-Counting?tab=readme-ov-file  
+
+Siec jest mozna trenowac na datasecie UCF_QRNF - https://www.crcv.ucf.edu/data/ucf-qnrf/
+
+Dodałem też model który sie zapisał po trenowaniu przez ok 2-3 godziny
