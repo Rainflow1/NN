@@ -6,6 +6,8 @@ from PIL import Image
 import torchvision.transforms.functional as F
 import numpy as np
 import os
+from scipy.ndimage import gaussian_filter
+import cv2
 
 
 class UCFDataset(Dataset):
@@ -28,13 +30,24 @@ class UCFDataset(Dataset):
         gt_path = img_path.replace(".jpg", ".npy")
 
         img = Image.open(img_path).convert("RGB")
-        points = np.load(gt_path)
+        gt = np.load(gt_path)
 
-        # zapisac to do funkcji
         if self.mode == "train":
-            return self.train_transform(img, points)
+            return self.train_transform(img, gt)
+        elif self.mode == "val":
+            return F.to_tensor(img), len(gt), self.files[index]
         else:
-            return F.to_tensor(img), len(points), self.files[index]
+            width, height = img.size
+            idx_mask = (gt[:, 0] >= 0) * (gt[:, 0] <= width) * (gt[:, 1] >= 0) * (gt[:, 1] <= height)
+            gt = gt[idx_mask]
+            points = np.zeros((height, width))
+            for i in range(len(gt)):
+                points[int(gt[i, 1]), int(gt[i, 0])] = 1.0
+
+            points = gaussian_filter(points, sigma=8)
+            points = cv2.resize(points, (int(width / 8), int(height / 8)), interpolation=cv2.INTER_CUBIC) * 64
+
+            return F.to_tensor(img), len(gt), points
 
     def train_transform(self, img, points):
         """random crop image patch and find people in it"""

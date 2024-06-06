@@ -66,6 +66,7 @@ class Trainer:
             print("{} Epoch: {}".format(gettime(), epoch))
             self.train_epoch()
             self.validate(epoch)
+        print("{} Training Finished".format(gettime()))
 
     def train_epoch(self):
         mae = Avg()
@@ -126,3 +127,24 @@ class Trainer:
             torch.save(self.model.state_dict(), save_path)
             print("{} New best model - Epoch {}, MAE: {:.2f}, MSE: {:.2f}".
                   format(gettime(), epoch, mae, mse))
+
+    @staticmethod
+    def testOneImage(modelPath, imgPath):
+        torch.backends.cudnn.benchmark = True
+        os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        model_path = os.path.join(modelPath, "best_model.pth")
+
+        img = F.to_tensor(Image.open(imgPath).convert("RGB"))
+        img = img.unsqueeze(0)
+
+        model = vgg19()
+        model.to(device)
+        model.load_state_dict(torch.load(model_path), device)
+
+        img = img.to(device)
+        output = model(img)
+        print("\nObliczona ilośc osób")
+        print("{:.2f}".format(output.sum().item()))

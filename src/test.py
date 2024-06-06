@@ -2,6 +2,7 @@ from train import *
 from argparse import *
 import torch
 import os
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Training")
@@ -18,11 +19,10 @@ if __name__ == "__main__":
         print("Argument: {} -> {}".format(k, v))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Initialized with: " + str(device), end='\n\n')
 
     model_path = os.path.join(args.model, "best_model.pth")
 
-    test_set = UCFDataset(dataset_path=os.path.join(args.dataset, "test"), mode="val")
+    test_set = UCFDataset(dataset_path=os.path.join(args.dataset, "test"), mode="test")
 
     test_loader = DataLoader(test_set, batch_size=args.batch, shuffle=False, pin_memory=True,
                              num_workers=args.workers)
@@ -32,20 +32,27 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(model_path), device)
     diff_list = []
 
-    for i, (inputs, count, name) in tqdm(enumerate(test_loader), total=len(test_loader)):
+    for i, (inputs, count, gt) in enumerate(test_loader):
         inputs = inputs.to(device)
         count = count.to(device)
+        gt = gt.to(device)
         with torch.no_grad():
             output = model(inputs)
             diff = count[0].item() - output.sum().item()
 
             diff_list.append(diff)
 
-            if i % 50 == 0:
-                matplotlib.pyplot.figure(0)
-                matplotlib.pyplot.imshow(output.detach().cpu().squeeze().numpy())
-                matplotlib.pyplot.title("Generated from img: {}".format(name))
-                matplotlib.pyplot.show()
+            if i == 11: break
+
+            if i < 10:
+                plt.figure(0)
+                plt.imshow(gt.detach().cpu().squeeze().numpy())
+                plt.title("GT")
+                plt.figure(1)
+                plt.imshow(output.detach().cpu().squeeze().numpy())
+                plt.title("Generated")
+                plt.show()
+                print("IMG: {}, GT: {}, PRED: {}, DIFF: {}".format(i, count[0].item(), output.sum().item(), count[0].item() - output.sum().item()))
 
     diff_list = np.array(diff_list)
     mse = np.sqrt(np.mean(np.square(diff_list)))

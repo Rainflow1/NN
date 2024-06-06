@@ -46,6 +46,7 @@ def load_files(img_path, gt_path):
         points = points * rr
     return Image.fromarray(im), points
 
+
 def find_dis(point):
     square = np.sum(point*point, axis=1)
     dis = np.sqrt(np.maximum(square[:, None] - 2*np.matmul(point, point.T) + square[None, :], 0.0))
@@ -53,10 +54,9 @@ def find_dis(point):
     return dis
 
 
-if __name__ == "__main__":
+def process_dataset(dataset_path, result_path):
 
-    dataset_path = "C:\\Users\\Macie\\Downloads\\UCF-QNRF_ECCV18"
-    new_path = "./dataset"
+    print("jestem w funkcji")
 
     for phase in ["train", "test"]:
         subdir = os.path.join(dataset_path, phase)
@@ -70,18 +70,20 @@ if __name__ == "__main__":
 
         if phase == "train":
             sub_phases = ["train", "val"]
-            phase_files = {"train": [f.replace("\n", "") for f in open("train.txt")], "val": []}
-            phase_files["val"] = list(set(files) - set(phase_files["train"]))
+
+            items = int(len(files) * 0.9)
+            random.shuffle(files)
+            phase_files = {"train": files[:items], "val": files[items:]}
 
             for sub_phase in sub_phases:
-                subphase_dir = os.path.join(new_path, sub_phase)
+                subphase_dir = os.path.join(result_path, sub_phase)
 
                 if not os.path.exists(subphase_dir):
                     os.makedirs(subphase_dir)
-                for file in os.listdir(subphase_dir):
-                    os.remove(os.path.join(subphase_dir, file))
+                # for file in os.listdir(subphase_dir):
+                #    os.remove(os.path.join(subphase_dir, file))
 
-                for file in tqdm.tqdm(phase_files[sub_phase]):
+                for file in phase_files[sub_phase]:
                     img_path = os.path.join(dataset_path, phase, file)
                     gt_path = img_path.replace(".jpg", "_ann.mat")
 
@@ -94,15 +96,17 @@ if __name__ == "__main__":
                     gt_new_path = img_new_path.replace(".jpg", ".npy")
                     img.save(img_new_path)
                     np.save(gt_new_path, gt)
+                    print(file)
+                print("Przetworzono część: " + str(sub_phase))
         else:
-            subphase_dir = os.path.join(new_path, phase)
+            subphase_dir = os.path.join(result_path, phase)
 
             if not os.path.exists(subphase_dir):
                 os.makedirs(subphase_dir)
-            for file in os.listdir(subphase_dir):
-                os.remove(os.path.join(subphase_dir, file))
+            # for file in os.listdir(subphase_dir):
+            #    os.remove(os.path.join(subphase_dir, file))
 
-            for file in tqdm.tqdm(files):
+            for file in files:
                 img_path = os.path.join(dataset_path, phase, file)
                 gt_path = img_path.replace(".jpg", "_ann.mat")
 
@@ -112,3 +116,12 @@ if __name__ == "__main__":
                 gt_new_path = img_new_path.replace(".jpg", ".npy")
                 img.save(img_new_path)
                 np.save(gt_new_path, gt)
+                print(file)
+            print("Przetworzono część: test")
+    print("Przetworzono bazę zdjęć")
+
+
+if __name__ == "__main__":
+    dataset_path = "C:\\Users\\Macie\\Downloads\\UCF-QNRF_ECCV18"
+    new_path = "./dataset"
+    process_dataset(dataset_path, new_path)

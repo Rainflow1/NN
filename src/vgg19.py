@@ -56,3 +56,10 @@ def vgg19():
     model = VGG(make_layers(cfg['E']))
     model.load_state_dict(model_zoo.load_url(model_urls['vgg19']), strict=False)
     return model
+
+if __name__ == "__main__":
+    mo = vgg19()
+    inputs = torch.rand(1, 3, 256, 256)
+    out = mo(inputs)
+    print(inputs.shape)
+    print(out.shape)
