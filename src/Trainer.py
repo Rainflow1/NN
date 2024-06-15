@@ -6,6 +6,7 @@ from losses import *
 from vgg19 import *
 from dataset import UCFDataset
 from PIL import Image
+import torchvision.transforms.functional as F
 from torch.utils.data import DataLoader
 
 
