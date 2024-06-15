@@ -1,15 +1,11 @@
 import os
 from datetime import datetime
-import matplotlib.pyplot as plt
-import torch
 import time
-from UCF_CC_50 import UCF_CC_50_Dataset
 from model import *
-from model import CANNet
 from losses import *
 from vgg19 import *
 from dataset import UCFDataset
-from dataset_UCF_QRNF import *
+from PIL import Image
 from torch.utils.data import DataLoader
 
 
