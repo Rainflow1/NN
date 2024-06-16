@@ -166,6 +166,10 @@ class Window:
         scrolled_text.place(x=475, y=30)
 
     def threadTraining(self):
+        thread = threading.Thread(target=self.trainingInThread)
+        thread.start()
+
+    def trainingInThread():
         parser = ArgumentParser(description="Training")
         parser.add_argument("--dataset", default=str(self.trainDatasetPath), help="preprocessed dataset path")
         parser.add_argument("--model", default=str(self.trainCheckpointPath), help="model save path")
@@ -178,10 +182,8 @@ class Window:
         parser.add_argument("--crop-size", type=int, default=int(self.cropSizeEntry.get()))
         args = parser.parse_args()
         trainer = Trainer(args)
-        thread = threading.Thread(target=trainer.train)
-        print("Zaczynam trenowanie")
-        thread.start()
-        
+        trainer.train()
+    
     def createTrainFrame(self):
         frame = Frame(self.master)
         frame.grid(row=1, column=0, sticky="wens")
