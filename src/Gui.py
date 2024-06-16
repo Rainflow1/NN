@@ -149,7 +149,7 @@ class Window:
 
         Label(frame, text="Ścieżka do wynikowego folderu").place(x=50, y=150)
         btn = Button(frame, text="Przeglądaj pliki", height=2, borderwidth=1, relief="solid",
-                     command=lambda: [self.browseDirs("datasetReesultPath"), self.setText(dataset_result_path, self.datasetResultPath),
+                     command=lambda: [self.browseDirs("datasetResultPath"), self.setText(dataset_result_path, self.datasetResultPath),
                                       ], padx=10)
         btn.place(x=338, y=142)
 
@@ -244,7 +244,7 @@ class Window:
             self.img.place(x=5, y=5)
 
     def threadCountOneImage(self):
-        modelPath = "./checkpoint/24-04-29_22-03"
+        modelPath = str(self.testModelPath)
         imagePath = str(self.testImagePath)
         thread = threading.Thread(target=Trainer.testOneImage, args=(modelPath, imagePath))
         print("Zaczynam zliczanie osób")
