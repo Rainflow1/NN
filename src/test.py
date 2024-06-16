@@ -42,17 +42,7 @@ if __name__ == "__main__":
 
             diff_list.append(diff)
 
-            if i == 11: break
-
-            if i < 10:
-                plt.figure(0)
-                plt.imshow(gt.detach().cpu().squeeze().numpy())
-                plt.title("GT")
-                plt.figure(1)
-                plt.imshow(output.detach().cpu().squeeze().numpy())
-                plt.title("Generated")
-                plt.show()
-                print("IMG: {}, GT: {}, PRED: {}, DIFF: {}".format(i, count[0].item(), output.sum().item(), count[0].item() - output.sum().item()))
+            print("IMG: {}, GT: {}, PRED: {}, DIFF: {}".format(i, count[0].item(), output.sum().item(), count[0].item() - output.sum().item()))
 
     diff_list = np.array(diff_list)
     mse = np.sqrt(np.mean(np.square(diff_list)))
