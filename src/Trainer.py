@@ -1,7 +1,7 @@
 import os
+import numpy as np
 from datetime import datetime
 import time
-from model import *
 from losses import *
 from vgg19 import *
 from dataset import UCFDataset
