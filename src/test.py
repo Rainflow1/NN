@@ -1,4 +1,4 @@
-from train import *
+from Trainer import *
 from argparse import *
 import torch
 import os
