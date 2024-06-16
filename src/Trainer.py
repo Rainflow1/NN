@@ -132,14 +132,13 @@ class Trainer:
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        model_path = os.path.join(modelPath, "best_model.pth")
-
         img = F.to_tensor(Image.open(imgPath).convert("RGB"))
         img = img.unsqueeze(0)
 
         model = vgg19()
         model.to(device)
-        model.load_state_dict(torch.load(model_path), device)
+        model.load_state_dict(torch.load(modelPath), device)
+        
 
         img = img.to(device)
         output = model(img)
