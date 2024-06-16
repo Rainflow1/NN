@@ -169,7 +169,7 @@ class Window:
         thread = threading.Thread(target=self.trainingInThread)
         thread.start()
 
-    def trainingInThread():
+    def trainingInThread(self):
         parser = ArgumentParser(description="Training")
         parser.add_argument("--dataset", default=str(self.trainDatasetPath), help="preprocessed dataset path")
         parser.add_argument("--model", default=str(self.trainCheckpointPath), help="model save path")
