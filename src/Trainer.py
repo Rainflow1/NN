@@ -137,7 +137,7 @@ class Trainer:
 
         model = vgg19()
         model.to(device)
-        model.load_state_dict(torch.load(modelPath), device)
+        model.load_state_dict(torch.load(modelPath, device))
         
 
         img = img.to(device)
