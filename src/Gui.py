@@ -65,7 +65,7 @@ class Window:
         taskbar.columnconfigure(2, weight=1, uniform="bar_col")
         taskbar.columnconfigure(3, weight=6, uniform="bar_col")
 
-        nazwy = ["Ustawienia", "Trenowanie", "Oblicz liczbę osób", ""]
+        nazwy = ["Baza zdjęć", "Trenowanie", "Oblicz liczbę osób", ""]
         for i in range(4):
             label = Button(taskbar, text=nazwy[i], height=2, width=15, highlightbackground="white",
                            state=("disabled" if i == 3 else "active"))
@@ -246,11 +246,13 @@ class Window:
             self.img.place(x=5, y=5)
 
     def threadCountOneImage(self):
+        thread = threading.Thread(target=self.countInThread)
+        thread.start()
+
+    def countInThread(self):
         modelPath = str(self.testModelPath)
         imagePath = str(self.testImagePath)
-        thread = threading.Thread(target=Trainer.testOneImage, args=(modelPath, imagePath))
-        print("Zaczynam zliczanie osób")
-        thread.start()
+        Trainer.testOneImage(modelPath, imagePath)
 
 
     def createTestFrame(self):
