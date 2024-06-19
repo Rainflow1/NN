@@ -286,7 +286,7 @@ class Window:
         img_bg.place(x=460, y=100)
         self.img = Label(img_bg)
 
-        btn = Button(frame, text="Oblicz ilośc osób", height=2, borderwidth=1, relief="solid",
+        btn = Button(frame, text="Oblicz liczbę osób", height=2, borderwidth=1, relief="solid",
                      command=lambda: [self.redirect_logging(test_scrolled_text), self.threadCountOneImage()], padx=10)
         btn.place(x=190, y=240)
 
