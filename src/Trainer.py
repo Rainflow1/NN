@@ -142,5 +142,5 @@ class Trainer:
 
         img = img.to(device)
         output = model(img)
-        print("\nObliczona ilośc osób")
+        print("\nObliczona liczba osób")
         print("{:.2f}".format(output.sum().item()))
